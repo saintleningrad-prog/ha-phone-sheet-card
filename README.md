@@ -2,6 +2,8 @@
 
 A Lovelace card that shows everything the Home Assistant Companion app (Android) reports about a phone, grouped into readable sections. Pick a phone, the card finds its sensors by itself.
 
+![Phone Sheet Card](https://raw.githubusercontent.com/saintleningrad-prog/ha-phone-sheet-card/main/images/card.png)
+
 ## Sections
 
 | Section | What it shows (when the sensor is enabled in the app) |

@@ -23,7 +23,7 @@ const T = {
     dnd: "Do Not Disturb", volume_ring: "ring volume", volume_music: "media", bluetooth: "Bluetooth", connected: "connected",
     headphones: "headphones", playing: "playing", music: "music", alarm: "alarm", home: "home", accuracy: "accuracy",
     still: "still", walking: "walking", running: "running", on_foot: "on foot", in_vehicle: "in a vehicle", on_bicycle: "cycling", tilting: "in hand",
-    used: "used", free_of: "free of", low_space: "low space", steps: "steps", steps_since_reboot: "since reboot", distance: "distance",
+    used: "used", free_of: "{f} free of {t}", low_space: "low space", steps: "steps", steps_since_reboot: "since reboot", distance: "distance",
     heart_rate: "heart rate", sleep: "sleep",
     u_dbm: "dBm", u_ghz: "GHz", u_mbit: "Mbit/s", u_m: "m", u_gb: "GB", u_w: "W", u_km: "km", u_bpm: "bpm",
     bt_on: "on", bt_off: "off", data_on: "on", data_off: "off",
@@ -47,7 +47,7 @@ const T = {
     dnd: "«Не беспокоить»", volume_ring: "громкость звонка", volume_music: "музыки", bluetooth: "Bluetooth", connected: "подключено",
     headphones: "в наушниках", playing: "играет", music: "музыка", alarm: "будильник", home: "дома", accuracy: "точность",
     still: "на месте", walking: "идёт", running: "бежит", on_foot: "пешком", in_vehicle: "едет", on_bicycle: "на велосипеде", tilting: "в руках",
-    used: "занято", free_of: "свободно", low_space: "мало места", steps: "шаги", steps_since_reboot: "с перезагрузки", distance: "расстояние",
+    used: "занято", free_of: "свободно {f} из {t}", low_space: "мало места", steps: "шаги", steps_since_reboot: "с перезагрузки", distance: "расстояние",
     heart_rate: "пульс", sleep: "сон",
     u_dbm: "дБм", u_ghz: "ГГц", u_mbit: "Мбит/с", u_m: "м", u_gb: "ГБ", u_w: "Вт", u_km: "км", u_bpm: "уд/мин",
     bt_on: "включён", bt_off: "выключен", data_on: "включены", data_off: "выключены",
@@ -270,7 +270,7 @@ class PhoneSheetCard extends HTMLElement {
       let sto = has("internal_storage") ? null : hint(t("hint_storage"));
       if (has("internal_storage")) {
         const free = num("internal_storage");
-        sto = `${t("used")} ${fmt(100 - free)}% · ${t("free_of")} ${esc(at("internal_storage", "Free internal storage"))} / ${esc(at("internal_storage", "Total internal storage"))}`;
+        sto = `${t("used")} ${fmt(100 - free)}% · ${esc(t("free_of").replace("{f}", at("internal_storage", "Free internal storage")).replace("{t}", at("internal_storage", "Total internal storage")))}`;
         if (free < 10) sto += ` <ha-icon class="warn" icon="mdi:alert"></ha-icon> ${t("low_space")}`;
       }
       let steps = null;
