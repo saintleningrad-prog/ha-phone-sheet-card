@@ -1,0 +1,6 @@
+{
+  "name": "Phone Sheet Card",
+  "filename": "phone-sheet-card.js",
+  "render_readme": true,
+  "homeassistant": "2024.11.0"
+}
