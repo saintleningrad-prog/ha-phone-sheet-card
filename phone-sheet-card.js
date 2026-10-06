@@ -5,7 +5,7 @@
  * Lines appear only for sensors that report a value.
  * MIT License, https://github.com/saintleningrad-prog/ha-phone-sheet-card
  */
-const VERSION = "0.2.1";
+const VERSION = "0.2.2";
 
 const T = {
   en: {
@@ -278,6 +278,8 @@ class PhoneSheetCard extends HTMLElement {
       return (isNaN(n) ? tr(st(k)) : fmt(n, d)) + (u ? (u === "%" || u === "°C" || u === "°F" ? u : " " + u) : "");
     };
     const dur = (mins) => (mins >= 60 ? `${Math.floor(mins / 60)} ${t("h")} ${Math.round(mins % 60)} ${t("min")}` : `${Math.round(mins)} ${t("min")}`);
+    // colored progress bar, value 0..100
+    const pbar = (v, color) => `<span class="pbar"><span style="width:${Math.max(0, Math.min(100, v))}%;background:${color}"></span></span>`;
     const kv = (label, k, d) => (has(k) ? `${label}: ${val(k, d)}` : null);
     const join = (arr) => { const a = arr.filter(Boolean); return a.length ? a.join(" · ") : null; };
     const yesno = (k, yes, no) => (has(k) ? (on(k) ? yes : no) : null);
@@ -299,8 +301,7 @@ class PhoneSheetCard extends HTMLElement {
       const b = num("battery_level");
       let l1 = null;
       if (!isNaN(b)) {
-        const n = Math.max(0, Math.min(10, Math.ceil(b / 10)));
-        l1 = `<span class="bar">${"▮".repeat(n)}${"▯".repeat(10 - n)}</span> <b>${fmt(b)}%</b>`;
+        l1 = `${pbar(b, b > 50 ? "#43a047" : b > 20 ? "#fbc02d" : "#e53935")}<b>${fmt(b)}%</b>`;
         const bs = st("battery_state");
         if (bs) l1 += ` · ${tr(bs)}`;
         const ch = st("charger_type");
@@ -464,7 +465,8 @@ class PhoneSheetCard extends HTMLElement {
         const free = num(k);
         const f = at(k, "Free internal storage") || at(k, "Free external storage") || at(k, "Available");
         const tot = at(k, "Total internal storage") || at(k, "Total external storage") || at(k, "Total");
-        let s = `${label ? label + ": " : ""}${t("used")} ${fmt(100 - free)}%`;
+        const used = 100 - free;
+        let s = `${label ? label + ": " : ""}${pbar(used, used < 70 ? "#43a047" : used < 90 ? "#fb8c00" : "#e53935")}${t("used")} ${fmt(used)}%`;
         if (f && tot) s += ` · ${esc(t("free_of").replace("{f}", f).replace("{t}", tot))}`;
         if (free < 10) s += ` <ha-icon class="warn" icon="mdi:alert"></ha-icon> ${t("low_space")}`;
         return s;
@@ -601,7 +603,9 @@ class PhoneSheetCard extends HTMLElement {
         ul { margin: 0; padding-left: 34px; }
         li { margin: 2px 0; line-height: 1.45; color: var(--primary-text-color); }
         i { color: var(--secondary-text-color); }
-        .bar { letter-spacing: 1px; }
+        .pbar { display: inline-block; width: 110px; height: 10px; border-radius: 5px; overflow: hidden; vertical-align: -1px;
+          margin-right: 8px; background: var(--divider-color, rgba(127, 127, 127, 0.25)); }
+        .pbar > span { display: block; height: 100%; border-radius: 5px; }
         .warn { --mdc-icon-size: 16px; color: var(--warning-color); vertical-align: -2px; }
         li:has(> .chips) { list-style: none; margin-left: -16px; }
         .chips { display: flex; flex-wrap: wrap; gap: 4px 14px; }
