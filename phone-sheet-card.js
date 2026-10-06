@@ -5,7 +5,7 @@
  * Lines appear only for sensors that report a value.
  * MIT License, https://github.com/saintleningrad-prog/ha-phone-sheet-card
  */
-const VERSION = "0.2.0";
+const VERSION = "0.2.1";
 
 const T = {
   en: {
@@ -473,7 +473,9 @@ class PhoneSheetCard extends HTMLElement {
       const internal = storageLine("internal_storage", ext ? t("internal") : "") || storageLine("storage", "");
       sec("mdi:harddisk", t("s_storage"), [internal || (apple ? null : hint(t("hint_storage"))), ext]);
 
-      // ---- health and activity
+      // ---- health and activity: every metric gets its own colored icon
+      const C = (color, icon, html) => (html ? `<span class="m"><ha-icon icon="${icon}" style="color:${color}"></ha-icon>${html}</span>` : null);
+      const chips = (arr) => { const a = arr.filter(Boolean); return a.length ? `<span class="chips">${a.join("")}</span>` : null; };
       let steps = null;
       const se = this._config.steps_entity && hass.states[this._config.steps_entity];
       if (se && !BAD.includes(se.state)) steps = `${t("steps")}: <b>${fmt(parseFloat(se.state))}</b>`;
@@ -481,37 +483,63 @@ class PhoneSheetCard extends HTMLElement {
       else if (has("health_steps")) steps = `${t("steps")}: <b>${fmt(num("health_steps"))}</b>`;
       else if (has("steps")) steps = `${t("steps")}: <b>${fmt(num("steps"))}</b>`;
       else if (has("steps_sensor")) steps = `${t("steps")}: <b>${fmt(num("steps_sensor"))}</b> (${t("steps_since_reboot")})`;
-      const move = join([
-        has("daily_distance") ? `${t("distance")} ${val("daily_distance")}` : has("walking_running_distance") ? `${t("distance")} ${val("walking_running_distance", 2)}` : (has("distance") ? `${t("distance")} ${val("distance")}` : null),
-        has("daily_floors") ? `${t("floors")} ${val("daily_floors", 0)}` : !has("floors_ascended") && has("flights_climbed") ? `${t("floors")} ↑${fmt(num("flights_climbed"))}` : (has("floors_ascended") ? `${t("floors")} ↑${fmt(num("floors_ascended"))}${has("floors_descended") ? ` ↓${fmt(num("floors_descended"))}` : ""}` : null),
-        has("daily_elevation_gained") ? `${t("elevation")} ${val("daily_elevation_gained")}` : null,
-        has("average_active_pace") ? `${t("pace")} ${val("average_active_pace", 2)}` : null,
-        has("current_pace") ? `${t("current_pace")} ${val("current_pace", 2)}` : null,
-        has("current_cadence") ? `${t("cadence")} ${val("current_cadence", 2)}` : null,
+      const distance = has("daily_distance") ? `${t("distance")} ${val("daily_distance")}` : has("walking_running_distance") ? `${t("distance")} ${val("walking_running_distance", 2)}` : (has("distance") ? `${t("distance")} ${val("distance")}` : null);
+      const floors = has("daily_floors") ? `${t("floors")} ${val("daily_floors", 0)}` : !has("floors_ascended") && has("flights_climbed") ? `${t("floors")} ↑${fmt(num("flights_climbed"))}` : (has("floors_ascended") ? `${t("floors")} ↑${fmt(num("floors_ascended"))}${has("floors_descended") ? ` ↓${fmt(num("floors_descended"))}` : ""}` : null);
+      const move = chips([
+        C("#43a047", "mdi:walk", steps),
+        C("#1e88e5", "mdi:map-marker-distance", distance),
+        C("#fb8c00", "mdi:stairs", floors),
+        C("#8d6e63", "mdi:image-filter-hdr", has("daily_elevation_gained") ? `${t("elevation")} ${val("daily_elevation_gained")}` : null),
+        C("#00897b", "mdi:speedometer", has("average_active_pace") ? `${t("pace")} ${val("average_active_pace", 2)}` : null),
+        C("#00897b", "mdi:speedometer", has("current_pace") ? `${t("current_pace")} ${val("current_pace", 2)}` : null),
+        C("#00897b", "mdi:shoe-print", has("current_cadence") ? `${t("cadence")} ${val("current_cadence", 2)}` : null),
       ]);
-      const cal = join([kv(t("calories_active"), "active_calories_burned", 0), kv(t("calories_active"), "active_energy", 0),
-        kv(t("resting_energy"), "resting_energy", 0), kv(t("calories_total"), "total_calories_burned", 0), kv(t("exercise"), "exercise_time", 0)]);
-      const heart = join([
-        has("heart_rate") ? `${t("heart_rate")} ${val("heart_rate", 0)}` : null,
-        has("resting_heart_rate") ? `${t("resting_hr")} ${val("resting_heart_rate", 0)}` : null,
-        has("walking_heart_rate_average") ? `${t("walking_hr")} ${val("walking_heart_rate_average", 0)}` : null,
-        kv(t("hrv"), "heart_rate_variability", 0), kv(t("spo2"), "oxygen_saturation", 0), kv(t("spo2"), "blood_oxygen", 0),
-        kv(t("respiratory"), "respiratory_rate", 0),
+      const cal = chips([
+        C("#f4511e", "mdi:fire", kv(t("calories_active"), "active_calories_burned", 0) || kv(t("calories_active"), "active_energy", 0)),
+        C("#ff8a65", "mdi:fire-circle", kv(t("resting_energy"), "resting_energy", 0)),
+        C("#e64a19", "mdi:fire", kv(t("calories_total"), "total_calories_burned", 0)),
+        C("#7cb342", "mdi:run-fast", kv(t("exercise"), "exercise_time", 0)),
       ]);
       const sysK = has("systolic_blood_pressure") ? "systolic_blood_pressure" : has("blood_pressure_systolic") ? "blood_pressure_systolic" : null;
       const diaK = sysK === "systolic_blood_pressure" ? "diastolic_blood_pressure" : "blood_pressure_diastolic";
-      const bp = sysK ? `${t("pressure")}: ${fmt(num(sysK))}${has(diaK) ? "/" + fmt(num(diaK)) : ""} ${unit(at(sysK, "unit_of_measurement"))}` : null;
-      const body2 = join([kv(t("body_temp"), "body_temperature"), kv(t("basal_temp"), "basal_body_temperature"), kv(t("glucose"), "blood_glucose")]);
-      const comp = join([kv(t("weight"), "weight"), kv(t("height"), "height"), kv(t("body_fat"), "body_fat"), kv(t("body_fat"), "body_fat_percentage"),
-        kv(t("lean_mass"), "lean_body_mass"), kv(t("bone_mass"), "bone_mass"), kv(t("water_mass"), "body_water_mass")]);
-      const meta = join([kv(t("bmr"), "basal_metabolic_rate", 0), kv(t("hydration"), "daily_hydration"), kv(t("water"), "water", 0), kv(t("vo2"), "vo2_max")]);
-      const sleep = join([
-        has("sleep_duration") ? `${t("sleep")} ${val("sleep_duration")}` : null,
-        kv(t("sleep_confidence"), "sleep_confidence", 0), kv(t("sleep_segment"), "sleep_segment", 0),
-        kv(t("in_bed"), "in_bed"), kv(t("deep_sleep"), "deep_sleep"), kv(t("core_sleep"), "core_sleep"),
-        kv(t("rem_sleep"), "rem_sleep"), kv(t("awake"), "awake"),
+      const heart = chips([
+        C("#e53935", "mdi:heart-pulse", has("heart_rate") ? `${t("heart_rate")} ${val("heart_rate", 0)}` : null),
+        C("#ef5350", "mdi:heart", has("resting_heart_rate") ? `${t("resting_hr")} ${val("resting_heart_rate", 0)}` : null),
+        C("#ef5350", "mdi:heart", has("walking_heart_rate_average") ? `${t("walking_hr")} ${val("walking_heart_rate_average", 0)}` : null),
+        C("#d81b60", "mdi:chart-bell-curve", kv(t("hrv"), "heart_rate_variability", 0)),
+        C("#00acc1", "mdi:water-percent", kv(t("spo2"), "oxygen_saturation", 0) || kv(t("spo2"), "blood_oxygen", 0)),
+        C("#26a69a", "mdi:lungs", kv(t("respiratory"), "respiratory_rate", 0)),
+        C("#8e24aa", "mdi:gauge", sysK ? `${t("pressure")}: ${fmt(num(sysK))}${has(diaK) ? "/" + fmt(num(diaK)) : ""} ${unit(at(sysK, "unit_of_measurement"))}` : null),
       ]);
-      sec("mdi:heart-pulse", t("s_health"), [steps, move, cal, heart, bp, body2, comp, meta, sleep]);
+      const body2 = chips([
+        C("#ffb300", "mdi:thermometer", kv(t("body_temp"), "body_temperature")),
+        C("#ffa000", "mdi:thermometer-low", kv(t("basal_temp"), "basal_body_temperature")),
+        C("#ec407a", "mdi:diabetes", kv(t("glucose"), "blood_glucose")),
+      ]);
+      const comp = chips([
+        C("#00897b", "mdi:scale-bathroom", kv(t("weight"), "weight")),
+        C("#5c6bc0", "mdi:human-male-height", kv(t("height"), "height")),
+        C("#fdd835", "mdi:water-percent-alert", kv(t("body_fat"), "body_fat") || kv(t("body_fat"), "body_fat_percentage")),
+        C("#26a69a", "mdi:arm-flex", kv(t("lean_mass"), "lean_body_mass")),
+        C("#bdbdbd", "mdi:bone", kv(t("bone_mass"), "bone_mass")),
+        C("#29b6f6", "mdi:water", kv(t("water_mass"), "body_water_mass")),
+      ]);
+      const meta = chips([
+        C("#ff7043", "mdi:fire-alert", kv(t("bmr"), "basal_metabolic_rate", 0)),
+        C("#29b6f6", "mdi:cup-water", kv(t("hydration"), "daily_hydration") || kv(t("water"), "water", 0)),
+        C("#43a047", "mdi:run", kv(t("vo2"), "vo2_max")),
+      ]);
+      const sleep = chips([
+        C("#5e35b1", "mdi:sleep", has("sleep_duration") ? `${t("sleep")} ${val("sleep_duration")}` : null),
+        C("#7e57c2", "mdi:bed", kv(t("in_bed"), "in_bed")),
+        C("#311b92", "mdi:power-sleep", kv(t("deep_sleep"), "deep_sleep")),
+        C("#7986cb", "mdi:weather-night", kv(t("core_sleep"), "core_sleep")),
+        C("#9575cd", "mdi:eye", kv(t("rem_sleep"), "rem_sleep")),
+        C("#ffb74d", "mdi:eye-outline", kv(t("awake"), "awake")),
+        C("#7e57c2", "mdi:sleep", kv(t("sleep_confidence"), "sleep_confidence", 0)),
+        C("#7e57c2", "mdi:sleep", kv(t("sleep_segment"), "sleep_segment", 0)),
+      ]);
+      sec("mdi:heart-pulse", t("s_health"), [move, cal, heart, body2, comp, meta, sleep]);
 
       // ---- car
       sec("mdi:car", t("s_car"), [
@@ -575,6 +603,10 @@ class PhoneSheetCard extends HTMLElement {
         i { color: var(--secondary-text-color); }
         .bar { letter-spacing: 1px; }
         .warn { --mdc-icon-size: 16px; color: var(--warning-color); vertical-align: -2px; }
+        li:has(> .chips) { list-style: none; margin-left: -16px; }
+        .chips { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+        .m { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+        .m ha-icon { --mdc-icon-size: 18px; }
         .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; border: 1px solid var(--divider-color); }
         .msg { color: var(--secondary-text-color); padding: 8px 0; }
       </style>
